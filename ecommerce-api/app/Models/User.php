@@ -30,4 +30,8 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class);
     }
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'seller_id');
+    }
 }
