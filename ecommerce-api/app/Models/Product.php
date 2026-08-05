@@ -31,4 +31,20 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
+    }
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }
