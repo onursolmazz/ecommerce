@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::table('products', function (Blueprint $table) {
             $table->boolean('is_featured')->default(false)->after('status');
             $table->boolean('is_popular')->default(false)->after('is_featured');
-            $table->integer('view_count')->default(0)->after('is_popular');
-            $table->integer('sales_count')->default(0)->after('view_count');
+            $table->unsignedInteger('view_count')->default(0)->after('is_popular');
+            $table->unsignedInteger('sales_count')->default(0)->after('view_count');
         });
     }
 
