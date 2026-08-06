@@ -1,0 +1,57 @@
+.footer {
+  padding: 25px 0;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.navbar-custom {
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.navbar-brand {
+  color: var(--text);
+}
+
+.nav-link {
+  color: var(--text);
+  font-weight: 500;
+  transition: 0.3s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--primary);
+}
+
+.navbar-search {
+  width: 40%;
+}
+
+.navbar-icon {
+  position: relative;
+  font-size: 24px;
+  color: var(--text);
+  transition: 0.3s;
+}
+
+.navbar-icon:hover {
+  color: var(--primary);
+}
+
+.badge-count {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

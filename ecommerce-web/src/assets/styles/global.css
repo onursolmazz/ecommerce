@@ -4,3 +4,40 @@
 @import "./pages.css";
 @import "./dashboard.css";
 @import "./responsive.css";
+
+body {
+  background: var(--background);
+  color: var(--text);
+
+  font-family: "Inter", Arial, sans-serif;
+
+  transition: var(--transition);
+}
+
+.container {
+  max-width: 1200px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.section {
+  padding: 80px 0;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+}
+
+.navbar-toggler {
+  border: none;
+}

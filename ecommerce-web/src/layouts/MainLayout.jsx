@@ -4,15 +4,15 @@ import Footer from "../components/layout/Footer";
 
 function MainLayout() {
   return (
-    <>
+    <div className="app">
       <Navbar />
 
-      <main className="container py-4">
+      <main className="content">
         <Outlet />
       </main>
 
       <Footer />
-    </>
+    </div>
   );
 }
 
