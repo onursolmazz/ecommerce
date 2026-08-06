@@ -7,10 +7,12 @@ use App\Http\Requests\ReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Product;
 use App\Models\Review;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    public function index(Product $product)
+    public function index(Product $product): JsonResponse
     {
         $reviews = $product->reviews()
             ->with('user')
@@ -21,15 +23,24 @@ class ReviewController extends Controller
             'success' => true,
             'message' => 'Yorumlar getirildi.',
             'data' => ReviewResource::collection($reviews),
+            'meta' => [
+                'current_page' => $reviews->currentPage(),
+                'last_page' => $reviews->lastPage(),
+                'per_page' => $reviews->perPage(),
+                'total' => $reviews->total(),
+            ],
         ]);
     }
 
-    public function store(ReviewRequest $request)
+    public function store(ReviewRequest $request): JsonResponse
     {
+        $product = Product::where('status', true)
+            ->findOrFail($request->product_id);
+
         $review = Review::updateOrCreate(
             [
-                'user_id' => auth()->id,
-                'product_id' => $request->product_id,
+                'user_id' => Auth::id(),
+                'product_id' => $product->id,
             ],
             [
                 'rating' => $request->rating,
@@ -46,9 +57,15 @@ class ReviewController extends Controller
         ], 201);
     }
 
-    public function update(ReviewRequest $request, Review $review)
-    {
-        abort_if($review->user_id !== auth()->id, 403);
+    public function update(
+        ReviewRequest $request,
+        Review $review
+    ): JsonResponse {
+        abort_if(
+            $review->user_id !== Auth::id(),
+            403,
+            'Bu yorumu düzenleme yetkiniz yok.'
+        );
 
         $review->update([
             'rating' => $request->rating,
@@ -59,20 +76,27 @@ class ReviewController extends Controller
             'success' => true,
             'message' => 'Yorum güncellendi.',
             'data' => new ReviewResource(
-                $review->load('user')
+                $review->fresh()->load('user')
             ),
         ]);
     }
 
-    public function destroy(Review $review)
+    public function destroy(Review $review): JsonResponse
     {
-        abort_if($review->user_id !== auth()->id, 403);
+        abort_if(
+            $review->user_id !== Auth::id(),
+            403,
+            'Bu yorumu silme yetkiniz yok.'
+        );
 
         $review->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Yorum silindi.',
+            'data' => [
+                'id' => $review->id,
+            ],
         ]);
     }
 }

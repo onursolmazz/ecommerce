@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -13,14 +13,23 @@ import {
   IoLogInOutline,
   IoLogOutOutline,
   IoMenu,
-  IoMoonOutline,
+  IoNotificationsOutline,
   IoPersonAddOutline,
   IoPersonCircleOutline,
   IoSearchOutline,
   IoSettingsOutline,
-  IoSunnyOutline,
 } from "react-icons/io5";
+
 import { logoutUser } from "../../store/auth/authThunk";
+
+import { fetchCart } from "../../store/cart/cartThunk";
+import { resetCart } from "../../store/cart/cartSlice";
+
+import { fetchFavorites } from "../../store/favorite/favoriteThunk";
+import { resetFavorites } from "../../store/favorite/favoriteSlice";
+
+import { fetchNotifications } from "../../store/notification/notificationThunk";
+import { clearNotifications } from "../../store/notification/notificationSlice";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -28,35 +37,59 @@ const Navbar = () => {
   const { i18n } = useTranslation();
 
   const authState = useSelector((state) => state.auth);
+
   const cartState = useSelector((state) => state.cart);
+
   const favoriteState = useSelector((state) => state.favorite);
 
+  const notificationState = useSelector((state) => state.notification);
+
   const user = authState?.user ?? null;
+
   const isAuthenticated = authState?.isAuthenticated ?? Boolean(user);
+
   const authLoading = authState?.loading ?? authState?.isLoading ?? false;
 
-  const cartItems = cartState?.items ?? [];
-  const favoriteItems = favoriteState?.items ?? [];
+  const cartItems = Array.isArray(cartState?.items) ? cartState.items : [];
 
-  const initialTheme =
-    document.documentElement.getAttribute("data-theme") ??
-    localStorage.getItem("theme") ??
-    "light";
+  const favoriteItems = Array.isArray(favoriteState?.items)
+    ? favoriteState.items
+    : [];
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
   const [searchOpen, setSearchOpen] = useState(false);
+
   const [searchValue, setSearchValue] = useState("");
-  const [theme, setTheme] = useState(initialTheme);
 
-  const cartCount = cartItems.reduce((total, item) => {
-    return total + Number(item?.quantity ?? 1);
-  }, 0);
+  const cartCount = Number(
+    cartState?.totalQuantity ??
+      cartItems.reduce((total, item) => total + Number(item?.quantity ?? 0), 0),
+  );
 
-  const favoriteCount = favoriteItems.length;
+  const favoriteCount = Number(favoriteState?.total ?? favoriteItems.length);
 
-  const roleName =
-    user?.role?.name ?? user?.role?.slug ?? user?.role ?? "customer";
+  const notificationCount = Number(notificationState?.unreadCount ?? 0);
+
+  const roleName = String(
+    user?.role?.slug ?? user?.role?.name ?? user?.role ?? "customer",
+  ).toLowerCase();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    dispatch(fetchCart());
+    dispatch(fetchFavorites());
+    dispatch(
+      fetchNotifications({
+        per_page: 20,
+      }),
+    );
+  }, [dispatch, isAuthenticated]);
 
   const closeMenus = () => {
     setMobileMenuOpen(false);
@@ -78,6 +111,7 @@ const Navbar = () => {
     }
 
     navigate(`/products?search=${encodeURIComponent(query)}`);
+
     setSearchValue("");
     closeMenus();
   };
@@ -92,15 +126,8 @@ const Navbar = () => {
     const nextLanguage = currentLanguage.startsWith("tr") ? "en" : "tr";
 
     await i18n.changeLanguage(nextLanguage);
+
     localStorage.setItem("language", nextLanguage);
-  };
-
-  const handleThemeChange = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-
-    setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
-    document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
   const handleLogout = async () => {
@@ -109,24 +136,34 @@ const Navbar = () => {
     } catch (error) {
       console.error("Çıkış işlemi başarısız:", error);
     } finally {
+      dispatch(resetCart());
+      dispatch(resetFavorites());
+      dispatch(clearNotifications());
+
       closeMenus();
-      navigate("/login");
+
+      navigate("/login", {
+        replace: true,
+      });
     }
   };
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen((previousValue) => !previousValue);
+
     setProfileMenuOpen(false);
     setSearchOpen(false);
   };
 
   const handleProfileMenuToggle = () => {
     setProfileMenuOpen((previousValue) => !previousValue);
+
     setSearchOpen(false);
   };
 
   const handleSearchToggle = () => {
     setSearchOpen((previousValue) => !previousValue);
+
     setProfileMenuOpen(false);
   };
 
@@ -157,35 +194,54 @@ const Navbar = () => {
           </Link>
 
           <div className="navbar-mobile-actions">
-            <NavLink
-              to="/favorites"
-              className="navbar-icon-button"
-              aria-label="Favoriler"
-              onClick={handleNavigation}
-            >
-              <IoHeartOutline />
+            {isAuthenticated && (
+              <>
+                <NavLink
+                  to="/notifications"
+                  className="navbar-icon-button"
+                  aria-label="Bildirimler"
+                  onClick={handleNavigation}
+                >
+                  <IoNotificationsOutline />
 
-              {favoriteCount > 0 && (
-                <span className="navbar-count-badge">
-                  {favoriteCount > 99 ? "99+" : favoriteCount}
-                </span>
-              )}
-            </NavLink>
+                  {notificationCount > 0 && (
+                    <span className="navbar-count-badge">
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </span>
+                  )}
+                </NavLink>
 
-            <NavLink
-              to="/cart"
-              className="navbar-icon-button"
-              aria-label="Sepet"
-              onClick={handleNavigation}
-            >
-              <IoCartOutline />
+                <NavLink
+                  to="/favorites"
+                  className="navbar-icon-button"
+                  aria-label="Favoriler"
+                  onClick={handleNavigation}
+                >
+                  <IoHeartOutline />
 
-              {cartCount > 0 && (
-                <span className="navbar-count-badge">
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
-              )}
-            </NavLink>
+                  {favoriteCount > 0 && (
+                    <span className="navbar-count-badge">
+                      {favoriteCount > 99 ? "99+" : favoriteCount}
+                    </span>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/cart"
+                  className="navbar-icon-button"
+                  aria-label="Sepet"
+                  onClick={handleNavigation}
+                >
+                  <IoCartOutline />
+
+                  {cartCount > 0 && (
+                    <span className="navbar-count-badge">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </NavLink>
+              </>
+            )}
 
             <button
               type="button"
@@ -309,45 +365,57 @@ const Navbar = () => {
                 </span>
               </button>
 
-              <button
-                type="button"
-                className="navbar-icon-button"
-                onClick={handleThemeChange}
-                aria-label="Temayı değiştir"
-                title="Temayı değiştir"
-              >
-                {theme === "dark" ? <IoSunnyOutline /> : <IoMoonOutline />}
-              </button>
+              {isAuthenticated && (
+                <>
+                  <NavLink
+                    to="/notifications"
+                    className="navbar-icon-button navbar-desktop-action"
+                    aria-label="Bildirimler"
+                    title="Bildirimler"
+                    onClick={handleNavigation}
+                  >
+                    <IoNotificationsOutline />
 
-              <NavLink
-                to="/favorites"
-                className="navbar-icon-button navbar-desktop-action"
-                aria-label="Favoriler"
-                onClick={handleNavigation}
-              >
-                <IoHeartOutline />
+                    {notificationCount > 0 && (
+                      <span className="navbar-count-badge">
+                        {notificationCount > 99 ? "99+" : notificationCount}
+                      </span>
+                    )}
+                  </NavLink>
 
-                {favoriteCount > 0 && (
-                  <span className="navbar-count-badge">
-                    {favoriteCount > 99 ? "99+" : favoriteCount}
-                  </span>
-                )}
-              </NavLink>
+                  <NavLink
+                    to="/favorites"
+                    className="navbar-icon-button navbar-desktop-action"
+                    aria-label="Favoriler"
+                    title="Favoriler"
+                    onClick={handleNavigation}
+                  >
+                    <IoHeartOutline />
 
-              <NavLink
-                to="/cart"
-                className="navbar-icon-button navbar-desktop-action"
-                aria-label="Sepet"
-                onClick={handleNavigation}
-              >
-                <IoCartOutline />
+                    {favoriteCount > 0 && (
+                      <span className="navbar-count-badge">
+                        {favoriteCount > 99 ? "99+" : favoriteCount}
+                      </span>
+                    )}
+                  </NavLink>
 
-                {cartCount > 0 && (
-                  <span className="navbar-count-badge">
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </span>
-                )}
-              </NavLink>
+                  <NavLink
+                    to="/cart"
+                    className="navbar-icon-button navbar-desktop-action"
+                    aria-label="Sepet"
+                    title="Sepet"
+                    onClick={handleNavigation}
+                  >
+                    <IoCartOutline />
+
+                    {cartCount > 0 && (
+                      <span className="navbar-count-badge">
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </span>
+                    )}
+                  </NavLink>
+                </>
+              )}
 
               {isAuthenticated ? (
                 <div className="navbar-profile">
@@ -392,6 +460,33 @@ const Navbar = () => {
                         <span>Profilim</span>
                       </Link>
 
+                      <Link
+                        to="/notifications"
+                        className="navbar-profile-menu-item"
+                        onClick={handleNavigation}
+                        role="menuitem"
+                      >
+                        <IoNotificationsOutline />
+
+                        <span>Bildirimler</span>
+
+                        {notificationCount > 0 && (
+                          <strong className="navbar-menu-count">
+                            {notificationCount > 99 ? "99+" : notificationCount}
+                          </strong>
+                        )}
+                      </Link>
+
+                      <Link
+                        to="/orders"
+                        className="navbar-profile-menu-item"
+                        onClick={handleNavigation}
+                        role="menuitem"
+                      >
+                        <IoBagHandleOutline />
+                        <span>Siparişlerim</span>
+                      </Link>
+
                       {(roleName === "admin" || roleName === "seller") && (
                         <Link
                           to={getDashboardPath()}
@@ -403,16 +498,6 @@ const Navbar = () => {
                           <span>Yönetim Paneli</span>
                         </Link>
                       )}
-
-                      <Link
-                        to="/orders"
-                        className="navbar-profile-menu-item"
-                        onClick={handleNavigation}
-                        role="menuitem"
-                      >
-                        <IoBagHandleOutline />
-                        <span>Siparişlerim</span>
-                      </Link>
 
                       <div className="navbar-profile-divider" />
 

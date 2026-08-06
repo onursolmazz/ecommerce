@@ -15,8 +15,23 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'status' => $this->status,
-            'created_at' => $this->created_at,
+            'city' => $this->city,
+            'district' => $this->district,
+            'address' => $this->address,
+
+            'role' => $this->whenLoaded(
+                'role',
+                function () {
+                    return [
+                        'id' => $this->role?->id,
+                        'name' => $this->role?->name,
+                        'slug' => $this->role?->slug,
+                    ];
+                }
+            ),
+
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

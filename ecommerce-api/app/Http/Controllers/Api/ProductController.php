@@ -9,127 +9,255 @@ use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\StockHistory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ProductController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $products = Product::with([
-            'category',
-            'seller',
-            'images'
-        ])
-            ->when($request->search, function ($query) use ($request) {
-                $query->where('name', 'like', "%{$request->search}%");
-            })
-            ->when($request->category_id, function ($query) use ($request) {
-                $query->where('category_id', $request->category_id);
-            })
-            ->when($request->seller_id, function ($query) use ($request) {
-                $query->where('seller_id', $request->seller_id);
-            })
-            ->when($request->min_price, function ($query) use ($request) {
-                $query->where('price', '>=', $request->min_price);
-            })
-            ->when($request->max_price, function ($query) use ($request) {
-                $query->where('price', '<=', $request->max_price);
-            })
-            ->when($request->status !== null, function ($query) use ($request) {
-                $query->where('status', $request->status);
-            })
-            ->when($request->sort, function ($query) use ($request) {
+        try {
+            $perPage = max(
+                1,
+                min((int) $request->input('per_page', 12), 50)
+            );
 
-                switch ($request->sort) {
+            $query = Product::query()
+                ->with([
+                    'category',
+                    'seller',
+                    'images',
+                ])
+                ->withCount([
+                    'reviews',
+                    'favorites',
+                ])
+                ->withAvg('reviews', 'rating');
 
-                    case 'price_asc':
-                        $query->orderBy('price');
-                        break;
+            if ($request->filled('search')) {
+                $search = trim((string) $request->input('search'));
 
-                    case 'price_desc':
-                        $query->orderByDesc('price');
-                        break;
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                            $categoryQuery->where(
+                                'name',
+                                'like',
+                                "%{$search}%"
+                            );
+                        });
+                });
+            }
 
-                    case 'oldest':
-                        $query->oldest();
-                        break;
+            if ($request->filled('category_id')) {
+                $query->where(
+                    'category_id',
+                    $request->integer('category_id')
+                );
+            }
 
-                    default:
-                        $query->latest();
-                }
-            }, function ($query) {
-                $query->latest();
-            })
-            ->paginate(12);
+            if ($request->filled('category')) {
+                $category = $request->input('category');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ürünler getirildi.',
-            'data' => ProductResource::collection($products),
-            'meta' => [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage(),
-                'total' => $products->total(),
-            ]
-        ]);
+                $query->whereHas('category', function ($categoryQuery) use ($category) {
+                    $categoryQuery->where(function ($builder) use ($category) {
+                        $builder->where('slug', $category);
+
+                        if (is_numeric($category)) {
+                            $builder->orWhere('id', (int) $category);
+                        }
+                    });
+                });
+            }
+
+            if ($request->filled('seller_id')) {
+                $query->where(
+                    'seller_id',
+                    $request->integer('seller_id')
+                );
+            }
+
+            if ($request->filled('min_price')) {
+                $query->where(
+                    'price',
+                    '>=',
+                    (float) $request->input('min_price')
+                );
+            }
+
+            if ($request->filled('max_price')) {
+                $query->where(
+                    'price',
+                    '<=',
+                    (float) $request->input('max_price')
+                );
+            }
+
+            if ($request->has('status')) {
+                $query->where(
+                    'status',
+                    $request->boolean('status')
+                );
+            }
+
+            if ($request->boolean('in_stock')) {
+                $query->where('stock', '>', 0);
+            }
+
+            switch ($request->input('sort', 'latest')) {
+                case 'popular':
+                    $query
+                        ->orderByDesc('reviews_count')
+                        ->orderByDesc('favorites_count')
+                        ->orderByDesc('reviews_avg_rating')
+                        ->latest('id');
+                    break;
+
+                case 'rating':
+                    $query
+                        ->orderByDesc('reviews_avg_rating')
+                        ->orderByDesc('reviews_count')
+                        ->latest('id');
+                    break;
+
+                case 'price_asc':
+                    $query
+                        ->orderBy('price')
+                        ->latest('id');
+                    break;
+
+                case 'price_desc':
+                    $query
+                        ->orderByDesc('price')
+                        ->latest('id');
+                    break;
+
+                case 'name_asc':
+                    $query->orderBy('name');
+                    break;
+
+                case 'name_desc':
+                    $query->orderByDesc('name');
+                    break;
+
+                case 'oldest':
+                    $query->oldest();
+                    break;
+
+                case 'latest':
+                default:
+                    $query->latest();
+                    break;
+            }
+
+            $products = $query
+                ->paginate($perPage)
+                ->withQueryString();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ürünler getirildi.',
+                'data' => ProductResource::collection(
+                    $products->getCollection()
+                ),
+                'meta' => [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                    'from' => $products->firstItem(),
+                    'to' => $products->lastItem(),
+                ],
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ürünler getirilemedi.',
+                'error' => app()->isLocal()
+                    ? $exception->getMessage()
+                    : null,
+            ], 500);
+        }
     }
 
-    public function show(Product $product)
+    public function show(Product $product): JsonResponse
     {
         $product->load([
             'category',
             'seller',
             'images',
-            'reviews.user'
+            'reviews.user',
         ]);
+
+        $product->loadCount([
+            'reviews',
+            'favorites',
+        ]);
+
+        $product->loadAvg('reviews', 'rating');
 
         return response()->json([
             'success' => true,
             'message' => 'Ürün başarıyla getirildi.',
-            'data' => new ProductResource($product)
+            'data' => new ProductResource($product),
         ]);
     }
 
-    public function store(StoreProductRequest $request)
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        DB::beginTransaction();
-
         try {
+            $product = DB::transaction(function () use ($request) {
+                $product = Product::create([
+                    'category_id' => $request->integer('category_id'),
+                    'seller_id' => Auth::id(),
+                    'name' => $request->input('name'),
+                    'slug' => $this->generateUniqueSlug(
+                        $request->input('name')
+                    ),
+                    'description' => $request->input('description'),
+                    'price' => $request->input('price'),
+                    'stock' => $request->integer('stock'),
+                    'status' => $request->boolean('status'),
+                ]);
 
-            $product = Product::create([
-                'category_id' => $request->category_id,
-                'seller_id'   => auth()->id,
-                'name'        => $request->name,
-                'slug'        => Str::slug($request->name),
-                'description' => $request->description,
-                'price'       => $request->price,
-                'stock'       => $request->stock,
-                'status'      => $request->boolean('status'),
-            ]);
+                if ($request->hasFile('images')) {
+                    foreach ($request->file('images') as $index => $image) {
+                        $path = $image->store('products', 'public');
 
-            if ($request->hasFile('images')) {
+                        ProductImage::create([
+                            'product_id' => $product->id,
+                            'image' => $path,
+                            'is_primary' => $index === 0,
+                        ]);
+                    }
+                }
 
-                foreach ($request->file('images') as $index => $image) {
-
-                    $path = $image->store('products', 'public');
-
-                    ProductImage::create([
+                if ($product->stock > 0) {
+                    StockHistory::create([
                         'product_id' => $product->id,
-                        'image' => $path,
-                        'is_primary' => $index === 0,
+                        'user_id' => Auth::id(),
+                        'type' => 'create',
+                        'quantity' => $product->stock,
+                        'description' => 'Başlangıç stoğu oluşturuldu.',
                     ]);
                 }
-            }
 
-            DB::commit();
+                return $product;
+            });
 
             $product->load([
                 'category',
                 'seller',
-                'images'
+                'images',
             ]);
 
             return response()->json([
@@ -137,87 +265,126 @@ class ProductController extends Controller
                 'message' => 'Ürün başarıyla oluşturuldu.',
                 'data' => new ProductResource($product),
             ], 201);
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
+        } catch (Throwable $exception) {
+            report($exception);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Ürün oluşturulamadı.',
-                'error' => app()->isLocal() ? $e->getMessage() : null,
+                'error' => app()->isLocal()
+                    ? $exception->getMessage()
+                    : null,
             ], 500);
         }
     }
 
-    public function update(UpdateProductRequest $request, Product $product)
-    {
-        DB::beginTransaction();
-
+    public function update(
+        UpdateProductRequest $request,
+        Product $product
+    ): JsonResponse {
         try {
-            $oldStock = $product->stock;
-            $product->update([
-                'category_id' => $request->category_id,
-                'name' => $request->name,
-                'slug' => Str::slug($request->name),
-                'description' => $request->description,
-                'price' => $request->price,
-                'stock' => $request->stock,
-                'status' => $request->boolean('status'),
-            ]);
-            if ($request->filled('deleted_images')) {
-                $images = ProductImage::whereIn('id', $request->deleted_images)
-                    ->where('product_id', $product->id)
-                    ->get();
-                foreach ($images as $image) {
-                    Storage::disk('public')->delete($image->image);
-                    $image->delete();
-                }
-            }
-            if ($request->hasFile('images')) {
+            DB::transaction(function () use ($request, $product) {
+                $oldStock = (int) $product->stock;
+                $newStock = $request->integer('stock');
 
-                foreach ($request->file('images') as $image) {
-
-                    $path = $image->store('products', 'public');
-
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image' => $path,
-                        'is_primary' => false,
-                    ]);
-                }
-            }
-
-            if ($request->filled('primary_image_id')) {
-
-                ProductImage::where('product_id', $product->id)
-                    ->update([
-                        'is_primary' => false
-                    ]);
-
-                ProductImage::where('id', $request->primary_image_id)
-                    ->where('product_id', $product->id)
-                    ->update([
-                        'is_primary' => true
-                    ]);
-            }
-
-            if ($oldStock != $request->stock) {
-
-                StockHistory::create([
-                    'product_id' => $product->id,
-                    'user_id' => auth()->id,
-                    'type' => 'update',
-                    'quantity' => $request->stock - $oldStock,
-                    'description' => 'Stok güncellendi.'
+                $product->update([
+                    'category_id' => $request->integer('category_id'),
+                    'name' => $request->input('name'),
+                    'slug' => $this->generateUniqueSlug(
+                        $request->input('name'),
+                        $product->id
+                    ),
+                    'description' => $request->input('description'),
+                    'price' => $request->input('price'),
+                    'stock' => $newStock,
+                    'status' => $request->boolean('status'),
                 ]);
-            }
 
-            DB::commit();
+                if ($request->filled('deleted_images')) {
+                    $deletedImageIds = collect(
+                        $request->input('deleted_images')
+                    )
+                        ->filter()
+                        ->map(fn($id) => (int) $id)
+                        ->values()
+                        ->all();
 
-            $product->load([
+                    $images = ProductImage::query()
+                        ->where('product_id', $product->id)
+                        ->whereIn('id', $deletedImageIds)
+                        ->get();
+
+                    foreach ($images as $image) {
+                        Storage::disk('public')->delete($image->image);
+                        $image->delete();
+                    }
+                }
+
+                if ($request->hasFile('images')) {
+                    $hasPrimaryImage = ProductImage::query()
+                        ->where('product_id', $product->id)
+                        ->where('is_primary', true)
+                        ->exists();
+
+                    foreach ($request->file('images') as $index => $image) {
+                        $path = $image->store('products', 'public');
+
+                        ProductImage::create([
+                            'product_id' => $product->id,
+                            'image' => $path,
+                            'is_primary' => !$hasPrimaryImage && $index === 0,
+                        ]);
+                    }
+                }
+
+                if ($request->filled('primary_image_id')) {
+                    $primaryImage = ProductImage::query()
+                        ->where('product_id', $product->id)
+                        ->findOrFail(
+                            $request->integer('primary_image_id')
+                        );
+
+                    ProductImage::query()
+                        ->where('product_id', $product->id)
+                        ->update([
+                            'is_primary' => false,
+                        ]);
+
+                    $primaryImage->update([
+                        'is_primary' => true,
+                    ]);
+                }
+
+                $hasPrimaryImage = ProductImage::query()
+                    ->where('product_id', $product->id)
+                    ->where('is_primary', true)
+                    ->exists();
+
+                if (!$hasPrimaryImage) {
+                    ProductImage::query()
+                        ->where('product_id', $product->id)
+                        ->oldest('id')
+                        ->first()
+                        ?->update([
+                            'is_primary' => true,
+                        ]);
+                }
+
+                if ($oldStock !== $newStock) {
+                    StockHistory::create([
+                        'product_id' => $product->id,
+                        'user_id' => Auth::id(),
+                        'type' => 'update',
+                        'quantity' => $newStock - $oldStock,
+                        'description' => 'Stok güncellendi.',
+                    ]);
+                }
+            });
+
+            $product->refresh()->load([
                 'category',
                 'seller',
-                'images'
+                'images',
             ]);
 
             return response()->json([
@@ -225,18 +392,20 @@ class ProductController extends Controller
                 'message' => 'Ürün başarıyla güncellendi.',
                 'data' => new ProductResource($product),
             ]);
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
+        } catch (Throwable $exception) {
+            report($exception);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Ürün güncellenemedi.',
-                'error' => app()->isLocal() ? $e->getMessage() : null,
+                'error' => app()->isLocal()
+                    ? $exception->getMessage()
+                    : null,
             ], 500);
         }
     }
-    public function destroy(Product $product)
+
+    public function destroy(Product $product): JsonResponse
     {
         $product->delete();
 
@@ -245,62 +414,91 @@ class ProductController extends Controller
             'message' => 'Ürün başarıyla silindi.',
             'data' => [
                 'id' => $product->id,
-                'deleted_at' => now(),
-            ]
+                'deleted_at' => $product->deleted_at,
+            ],
         ]);
     }
-    public function restore($id)
+
+    public function restore(int $id): JsonResponse
     {
         $product = Product::withTrashed()->findOrFail($id);
 
+        if (!$product->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ürün zaten aktif durumda.',
+            ], 422);
+        }
+
         $product->restore();
+
+        $product->load([
+            'category',
+            'seller',
+            'images',
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Ürün geri yüklendi.',
-            'data' => new ProductResource(
-                $product->load([
-                    'category',
-                    'seller',
-                    'images'
-                ])
-            )
+            'data' => new ProductResource($product),
         ]);
     }
-    public function forceDelete($id)
+
+    public function forceDelete(int $id): JsonResponse
     {
-        DB::beginTransaction();
-
         try {
+            DB::transaction(function () use ($id) {
+                $product = Product::withTrashed()
+                    ->with('images')
+                    ->findOrFail($id);
 
-            $product = Product::withTrashed()
-                ->with('images')
-                ->findOrFail($id);
+                foreach ($product->images as $image) {
+                    Storage::disk('public')->delete($image->image);
+                    $image->forceDelete();
+                }
 
-            foreach ($product->images as $image) {
-
-                Storage::disk('public')->delete($image->image);
-
-                $image->forceDelete();
-            }
-
-            $product->forceDelete();
-
-            DB::commit();
+                $product->forceDelete();
+            });
 
             return response()->json([
                 'success' => true,
-                'message' => 'Ürün kalıcı olarak silindi.'
+                'message' => 'Ürün kalıcı olarak silindi.',
             ]);
-        } catch (\Throwable $e) {
-
-            DB::rollBack();
+        } catch (Throwable $exception) {
+            report($exception);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Ürün silinemedi.',
-                'error' => app()->isLocal() ? $e->getMessage() : null,
+                'error' => app()->isLocal()
+                    ? $exception->getMessage()
+                    : null,
             ], 500);
         }
+    }
+
+    private function generateUniqueSlug(
+        string $name,
+        ?int $ignoreId = null
+    ): string {
+        $baseSlug = Str::slug($name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (
+            Product::withTrashed()
+            ->where('slug', $slug)
+            ->when(
+                $ignoreId,
+                fn($query) => $query->where('id', '!=', $ignoreId)
+            )
+            ->exists()
+        ) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
     }
 }

@@ -87,6 +87,7 @@ const Register = () => {
           email: formData.email,
           password: formData.password,
           password_confirmation: formData.password_confirmation,
+          role_id: 1,
         }),
       ).unwrap();
 

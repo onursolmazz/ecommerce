@@ -4,6 +4,12 @@
 @import "./pages.css";
 @import "./dashboard.css";
 @import "./responsive.css";
+@import "./product.css";
+@import "./cart.css";
+@import "./favorite.css";
+@import "./order.css";
+@import "./checkout.css";
+@import "./category.css";
 
 body {
   background: var(--background);

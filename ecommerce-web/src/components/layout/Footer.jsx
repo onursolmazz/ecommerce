@@ -1,12 +1,9 @@
 import { Link } from "react-router-dom";
 import {
   IoBagHandleOutline,
-  IoCallOutline,
-  IoLogoFacebook,
   IoLogoGithub,
   IoLogoInstagram,
   IoLogoLinkedin,
-  IoLogoTwitter,
   IoMailOutline,
   IoLocationOutline,
 } from "react-icons/io5";
@@ -35,7 +32,7 @@ const Footer = () => {
 
               <div className="footer-social-links">
                 <a
-                  href="https://instagram.com"
+                  href="https://onursolmaz.com.tr"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Instagram"
@@ -43,26 +40,11 @@ const Footer = () => {
                   <IoLogoInstagram />
                 </a>
 
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Facebook"
-                >
-                  <IoLogoFacebook />
-                </a>
+            
+              
 
                 <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Twitter"
-                >
-                  <IoLogoTwitter />
-                </a>
-
-                <a
-                  href="https://linkedin.com"
+                  href="https://www.linkedin.com/in/onur-solmaz-907971243/"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="LinkedIn"
@@ -71,7 +53,7 @@ const Footer = () => {
                 </a>
 
                 <a
-                  href="https://github.com"
+                  href="https://github.com/onursolmazz"
                   target="_blank"
                   rel="noreferrer"
                   aria-label="GitHub"
@@ -112,23 +94,23 @@ const Footer = () => {
 
               <ul className="footer-links">
                 <li>
-                  <Link to="/about">Hakkımızda</Link>
+                  <Link to="/">Hakkımızda</Link>
                 </li>
 
                 <li>
-                  <Link to="/contact">İletişim</Link>
+                  <Link to="/">İletişim</Link>
                 </li>
 
                 <li>
-                  <Link to="/privacy">Gizlilik Politikası</Link>
+                  <Link to="/">Gizlilik Politikası</Link>
                 </li>
 
                 <li>
-                  <Link to="/terms">Kullanım Koşulları</Link>
+                  <Link to="/">Kullanım Koşulları</Link>
                 </li>
 
                 <li>
-                  <Link to="/faq">Sıkça Sorulan Sorular</Link>
+                  <Link to="/">Sıkça Sorulan Sorular</Link>
                 </li>
               </ul>
             </div>
@@ -152,10 +134,6 @@ const Footer = () => {
                 <li>
                   <Link to="/orders">Sipariş Takibi</Link>
                 </li>
-
-                <li>
-                  <Link to="/dashboard">Satıcı Paneli</Link>
-                </li>
               </ul>
             </div>
 
@@ -166,19 +144,15 @@ const Footer = () => {
                 <li>
                   <IoLocationOutline />
 
-                  <span>İstanbul, Türkiye</span>
-                </li>
-
-                <li>
-                  <IoCallOutline />
-
-                  <a href="tel:+905555555555">+90 555 555 55 55</a>
+                  <span>Ankara, Türkiye</span>
                 </li>
 
                 <li>
                   <IoMailOutline />
 
-                  <a href="mailto:info@ecommerce.com">info@ecommerce.com</a>
+                  <a href="mailto:onursolmazzz2003@gmail.com">
+                    onursolmazzz2003@gmail.com
+                  </a>
                 </li>
               </ul>
             </div>
@@ -191,11 +165,11 @@ const Footer = () => {
           <p>© {currentYear} E-Commerce. Tüm hakları saklıdır.</p>
 
           <div className="footer-bottom-links">
-            <Link to="/privacy">Gizlilik</Link>
+            <Link to="/">Gizlilik</Link>
 
-            <Link to="/terms">Koşullar</Link>
+            <Link to="/">Koşullar</Link>
 
-            <Link to="/cookies">Çerezler</Link>
+            <Link to="/">Çerezler</Link>
           </div>
         </div>
       </div>

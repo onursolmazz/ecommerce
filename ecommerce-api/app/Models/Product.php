@@ -4,11 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
+
     protected $fillable = [
         'category_id',
         'seller_id',
@@ -24,35 +28,55 @@ class Product extends Model
         'sales_count',
     ];
 
-    public function category()
+    protected function casts(): array
+    {
+        return [
+            'price' => 'decimal:2',
+            'stock' => 'integer',
+            'status' => 'boolean',
+            'is_featured' => 'boolean',
+            'is_popular' => 'boolean',
+            'view_count' => 'integer',
+            'sales_count' => 'integer',
+        ];
+    }
+
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
-    public function seller()
+
+    public function seller(): BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_id');
     }
-    public function images()
+
+    public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class);
     }
-    public function cartItems()
+
+    public function cartItems(): HasMany
     {
         return $this->hasMany(CartItem::class);
     }
-    public function orderItems()
+
+    public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
-    public function favorites()
+
+    public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
     }
-    public function reviews()
+
+    public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
-    public function stockHistories()
+
+    public function stockHistories(): HasMany
     {
         return $this->hasMany(StockHistory::class);
     }
