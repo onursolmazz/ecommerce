@@ -27,7 +27,6 @@ function Navbar() {
         </button>
 
         <div className="collapse navbar-collapse" id="navbar">
-          {/* Menü */}
           <ul className="navbar-nav ms-lg-4">
             <li className="nav-item">
               <NavLink
@@ -63,7 +62,6 @@ function Navbar() {
             </li>
           </ul>
 
-          {/* Arama */}
           <form className="navbar-search mx-lg-auto my-3 my-lg-0">
             <div className="input-group">
               <input
