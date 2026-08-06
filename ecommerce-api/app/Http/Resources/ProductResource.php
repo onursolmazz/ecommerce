@@ -30,7 +30,6 @@ class ProductResource extends JsonResource
                 ->where('user_id', auth()->id)
                 ->exists(),
             'average_rating' => round($this->reviews()->avg('rating'), 1),
-
             'reviews_count' => $this->reviews()->count(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

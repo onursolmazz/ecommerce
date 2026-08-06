@@ -28,8 +28,6 @@ class CartController extends Controller
             'data' => $cart
         ]);
     }
-
-    // Sepete ürün ekle
     public function add(AddToCartRequest $request)
     {
         DB::beginTransaction();
