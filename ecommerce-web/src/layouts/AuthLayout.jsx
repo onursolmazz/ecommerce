@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
 
-function AuthLayout() {
+const AuthLayout = () => {
   return (
-    <div className="container py-5">
+    <div className="auth-layout">
       <Outlet />
     </div>
   );
-}
+};
 
 export default AuthLayout;

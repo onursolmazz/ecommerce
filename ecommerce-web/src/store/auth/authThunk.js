@@ -1,8 +1,14 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { toast } from "react-toastify";
 import { login, register, logout, me } from "../../api";
-
 import TokenService from "../../services/TokenService";
+
+const getErrorPayload = (error, fallbackMessage) => {
+  return {
+    message:
+      error?.response?.data?.message ?? error?.message ?? fallbackMessage,
+    errors: error?.response?.data?.errors ?? null,
+  };
+};
 
 export const loginUser = createAsyncThunk(
   "auth/login",
@@ -10,11 +16,28 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await login(data);
 
-      TokenService.set(response.data.token);
-      toast.success(response.data.message);
-      return response.data;
+      const token = response?.data?.token ?? response?.token;
+
+      const user = response?.data?.user ?? response?.user;
+
+      if (!token) {
+        return rejectWithValue({
+          message: "Giriş başarılı ancak token alınamadı.",
+          errors: null,
+        });
+      }
+
+      TokenService.set(token);
+
+      return {
+        message: response?.message ?? "Giriş başarılı.",
+        token,
+        user,
+      };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Login failed");
+      return rejectWithValue(
+        getErrorPayload(error, "Giriş işlemi başarısız oldu."),
+      );
     }
   },
 );
@@ -25,27 +48,67 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await register(data);
 
-      TokenService.set(response.data.token);
-      toast.success(response.data.message);
-      return response.data;
+      const token = response?.data?.token ?? response?.token;
+
+      const user = response?.data?.user ?? response?.user;
+
+      if (!token) {
+        return rejectWithValue({
+          message: "Kayıt başarılı ancak token alınamadı.",
+          errors: null,
+        });
+      }
+
+      TokenService.set(token);
+
+      return {
+        message: response?.message ?? "Kayıt başarılı.",
+        token,
+        user,
+      };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Register failed",
+        getErrorPayload(error, "Kayıt işlemi başarısız oldu."),
       );
     }
   },
 );
 
-export const logoutUser = createAsyncThunk("auth/logout", async () => {
-  await logout();
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await logout();
 
-  TokenService.remove();
-  toast.success("Çıkış yapıldı.");
-  return true;
-});
+      TokenService.remove();
 
-export const fetchMe = createAsyncThunk("auth/me", async () => {
-  const response = await me();
+      return {
+        message: response?.message ?? "Çıkış yapıldı.",
+      };
+    } catch (error) {
+      TokenService.remove();
 
-  return response.data;
-});
+      return rejectWithValue(
+        getErrorPayload(error, "Çıkış işlemi başarısız oldu."),
+      );
+    }
+  },
+);
+
+export const fetchMe = createAsyncThunk(
+  "auth/me",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await me();
+
+      const user =
+        response?.data?.user ?? response?.data ?? response?.user ?? response;
+
+      return user;
+    } catch (error) {
+      return rejectWithValue(
+        getErrorPayload(error, "Kullanıcı bilgileri alınamadı."),
+      );
+    }
+  },
+);

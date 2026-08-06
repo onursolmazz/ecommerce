@@ -6,10 +6,14 @@
 @import "./responsive.css";
 
 html {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
   font-size: 16px;
 }
 
 body {
+  width: 100%;
   min-width: 320px;
   min-height: 100vh;
   overflow-x: hidden;
@@ -25,11 +29,15 @@ body {
 
 #root {
   display: flex;
+  width: 100%;
+  min-width: 320px;
   min-height: 100vh;
   flex-direction: column;
 }
 
 main {
+  width: 100%;
+  min-width: 0;
   flex: 1;
 }
 
@@ -119,6 +127,7 @@ b {
 
 .app {
   display: flex;
+  width: 100%;
   min-height: 100vh;
   flex-direction: column;
 }
@@ -129,11 +138,13 @@ b {
 }
 
 .page-content {
+  width: 100%;
   min-height: 60vh;
 }
 
 .container-custom {
-  width: min(100% - 2rem, var(--container-max-width));
+  width: calc(100% - 40px);
+  max-width: var(--container-max-width);
   margin-inline: auto;
 }
 
