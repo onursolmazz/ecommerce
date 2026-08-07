@@ -1,12 +1,9 @@
 const globals = {
-  url: "http://localhost:5173/",
-  apiUrl: "http://127.0.0.1:8000/api",
-  imageUrl: "http://127.0.0.1:8000/storage/",
+  url: "https://ecommerce-du83.vercel.app",
+  apiUrl: "https://ecommerce-w7ko.onrender.com/api",
+  imageUrl: "https://ecommerce-w7ko.onrender.com/storage",
   defaultProductImage: "/images/no-image.png",
   defaultAvatar: "/images/avatar.png",
-  // url: "https://ecommerce.com/",
-  // apiUrl: "https://api.ecommerce.com/api",
-
   pagination: 12,
   timeout: 10000,
 };
