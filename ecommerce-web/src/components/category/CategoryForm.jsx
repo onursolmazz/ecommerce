@@ -6,7 +6,8 @@ import {
   IoSaveOutline,
 } from "react-icons/io5";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:8000";
+const API_URL =
+  import.meta.env.VITE_BACKEND_URL ?? "https://ecommerce-w7ko.onrender.com";
 
 const STORAGE_URL = import.meta.env.VITE_STORAGE_URL ?? `${API_URL}/storage`;
 
@@ -21,7 +22,9 @@ const getImageUrl = (value) => {
     value.startsWith("blob:") ||
     value.startsWith("data:")
   ) {
-    return value;
+    return value
+      .replace("http://127.0.0.1:8000", API_URL)
+      .replace("http://localhost:8000", API_URL);
   }
 
   if (value.startsWith("/storage/")) {
@@ -121,13 +124,12 @@ const CategoryForm = ({
   };
 
   return (
-    <form className="category-form" onSubmit={handleSubmit} noValidate>
+    <form className="category-form" onSubmit={handleSubmit}>
       <div className="category-form-layout">
-        <div className="category-form-main">
+        <div className="category-form-fields">
           <div className="category-form-group">
             <label htmlFor="name">
-              Kategori adı
-              <span>*</span>
+              Kategori adı <span>*</span>
             </label>
 
             <input

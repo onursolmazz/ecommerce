@@ -15,8 +15,9 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { deleteCategory, getCategories } from "../../api/categoryApi";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:8000";
-
+const API_URL =
+  import.meta.env.VITE_BACKEND_URL ??
+  "https://ecommerce-w7ko.onrender.com";
 const STORAGE_URL = import.meta.env.VITE_STORAGE_URL ?? `${API_URL}/storage`;
 
 const getImageUrl = (value) => {

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { IoImageOutline } from "react-icons/io5";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:8000";
+const API_URL =
+  import.meta.env.VITE_BACKEND_URL ?? "https://ecommerce-w7ko.onrender.com";
 
 const STORAGE_URL = import.meta.env.VITE_STORAGE_URL ?? `${API_URL}/storage`;
 
@@ -19,13 +20,14 @@ const getImageUrl = (value) => {
     return null;
   }
 
-  if (
-    path.startsWith("http://") ||
-    path.startsWith("https://") ||
-    path.startsWith("blob:") ||
-    path.startsWith("data:")
-  ) {
+  if (path.startsWith("blob:") || path.startsWith("data:")) {
     return path;
+  }
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path
+      .replace("http://127.0.0.1:8000", API_URL)
+      .replace("http://localhost:8000", API_URL);
   }
 
   if (path.startsWith("/storage/")) {
@@ -49,6 +51,7 @@ const ProductGallery = ({
   productName = "Ürün",
 }) => {
   const [selectedImageId, setSelectedImageId] = useState(null);
+
   const [failedImageUrls, setFailedImageUrls] = useState([]);
 
   const normalizedImages = useMemo(() => {

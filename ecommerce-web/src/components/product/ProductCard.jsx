@@ -10,8 +10,11 @@ import {
 import { toast } from "react-toastify";
 import formatPrice from "../../utils/formatPrice";
 
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ?? "https://ecommerce-w7ko.onrender.com";
+
 const STORAGE_URL =
-  import.meta.env.VITE_STORAGE_URL ?? "http://127.0.0.1:8000/storage";
+  import.meta.env.VITE_STORAGE_URL ?? `${BACKEND_URL}/storage`;
 
 const getImageUrl = (path) => {
   if (!path || typeof path !== "string") {
@@ -24,15 +27,17 @@ const getImageUrl = (path) => {
     path.startsWith("blob:") ||
     path.startsWith("data:")
   ) {
-    return path;
+    return path
+      .replace("http://127.0.0.1:8000", BACKEND_URL)
+      .replace("http://localhost:8000", BACKEND_URL);
   }
 
   if (path.startsWith("/storage/")) {
-    return `http://127.0.0.1:8000${path}`;
+    return `${BACKEND_URL}${path}`;
   }
 
   if (path.startsWith("/")) {
-    return path;
+    return `${BACKEND_URL}${path}`;
   }
 
   const normalizedPath = path
@@ -135,7 +140,7 @@ const ProductCard = ({
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="product-card-placeholder">
+            <div className="product-card-image-empty">
               <IoImageOutline />
               <span>Görsel bulunamadı</span>
             </div>
