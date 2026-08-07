@@ -28,7 +28,7 @@ import Orders from "../pages/Order/Orders";
 import OrderDetail from "../pages/Order/OrderDetail";
 import OrderSuccess from "../pages/Order/OrderSuccess";
 
-import Notifications from "../pages/Notifications/notifications";
+import Notifications from "../pages/Notifications/Notifications";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Profile from "../pages/Profile/Profile";
