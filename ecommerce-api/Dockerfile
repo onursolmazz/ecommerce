@@ -3,13 +3,16 @@ FROM php:8.4-cli
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    unzip \
     libpq-dev \
     libzip-dev \
-    unzip \
+    libonig-dev \
     && docker-php-ext-install \
     pdo \
     pdo_pgsql \
-    zip
+    mbstring \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -20,13 +23,11 @@ COPY . .
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
-    --no-interaction
+    --no-interaction \
+    --no-progress
 
-RUN php artisan config:clear || true
-RUN php artisan route:clear || true
-RUN php artisan view:clear || true
-
-RUN mkdir -p storage/framework/cache \
+RUN mkdir -p \
+    storage/framework/cache \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
@@ -34,6 +35,8 @@ RUN mkdir -p storage/framework/cache \
 
 RUN chmod -R 775 storage bootstrap/cache
 
-CMD php artisan migrate --force && \
-    php artisan storage:link || true && \
-    php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
+RUN php artisan config:clear || true
+RUN php artisan route:clear || true
+RUN php artisan view:clear || true
+
+CMD ["sh", "-c", "php artisan migrate --force && (php artisan storage:link || true) && php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
